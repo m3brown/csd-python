@@ -2,6 +2,10 @@ import unittest
 from hamcrest import *
 from nose.tools import *
 from vending_machine import VendingMachine
+try:
+    from mock import patch
+except ImportError:
+    from unittest.mock import patch
 
 class TestVendingMachine:
     def setup(self):
@@ -41,9 +45,10 @@ class TestVendingMachine:
         assert_is_none(result)
         assert_that(result, is_(none()))
 
-    def test_buy_product_with_payment_expects_product(self):
+    @patch("payments.PaymentProcessor.is_payment_made")
+    def test_buy_product_with_payment_expects_product(self, is_payment_made_mock):
         # Arrange
-        self.vending_machine.insert_coin(1)
+        is_payment_made_mock.return_value = True
 
         # Act
         result = self.vending_machine.buy_product()
@@ -53,8 +58,10 @@ class TestVendingMachine:
         assert_that(result, is_(not_none()))
 
     #@raises(RuntimeError)
-    def test_buy_product_with_no_payment_expects_exception(self):
+    @patch("payments.PaymentProcessor.is_payment_made")
+    def test_buy_product_with_no_payment_expects_exception(self, is_payment_made_mock):
         # Arrange
+        is_payment_made_mock.return_value = False
 
         # Act
         #result = self.vending_machine.buy_product()
@@ -63,9 +70,10 @@ class TestVendingMachine:
         assert_raises(RuntimeError, self.vending_machine.buy_product)
         assert_that(self.vending_machine.buy_product, raises(RuntimeError))
 
-    def test_get_message_returns_success_message_with_successful_purchase(self):
+    @patch("payments.PaymentProcessor.is_payment_made")
+    def test_get_message_returns_success_message_with_successful_purchase(self, is_payment_made_mock):
         # Arrange
-        self.vending_machine.insert_coin(1)
+        is_payment_made_mock.return_value = True
 
         # Act
         self.vending_machine.buy_product()
@@ -74,8 +82,10 @@ class TestVendingMachine:
         assert_equals(self.vending_machine.message, "Enjoy!")
         assert_that(self.vending_machine.message, is_(equal_to("Enjoy!")))
 
-    def test_get_message_returns_insert_money_message_when_purchase_fails(self):
+    @patch("payments.PaymentProcessor.is_payment_made")
+    def test_get_message_returns_insert_money_message_when_purchase_fails(self, is_payment_made_mock):
         # Arrange
+        is_payment_made_mock.return_value = False
 
         # Act
         try:
